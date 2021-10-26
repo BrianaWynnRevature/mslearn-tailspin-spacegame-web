@@ -4,22 +4,76 @@
 # https://docs.microsoft.com/azure/devops/pipelines/apps/aspnet/build-aspnet-4
 
 trigger:
-- main
+#- main
+#trigger is changed from main to a wildcard, but why do we want the 
+#pipeline to trigger from any branch?
+
+- '*'
 
 pool:
-  vmImage: 'windows-latest'
+  #vmImage: 'windows-latest'
+  #vm must mean the virtual machine image that we are using
+  #we want to change to ubuntu-20.04 for a linux system
+  #makes sense if we will run linux containers later, but
+  #if we weren't going to do that why else do we want this change?
+
+  vmImage: 'ubuntu-20.04'
+  demands:
+  - npm
 
 variables:
-  solution: '**/*.sln'
-  buildPlatform: 'Any CPU'
+  # the solution can be any file that is a .sln file
+  # solution: '**/*.sln' 
+  # we can build on any cpu
+  # I wonder if not having these commands are outdated?
+  # buildPlatform: 'Any CPU'
   buildConfiguration: 'Release'
 
 steps:
-- task: NuGetToolInstaller@1
-
-- task: NuGetCommand@2
+# installs nuget packages
+#- task: NuGetToolInstaller@1
+#is UseDotNet@2 a replacement for this task or something else entirely?
+#UseDotNet@2 is to install .net 
+- task: UseDotNet@2
+  displayName: 'Use .NET SDK 5.x'
   inputs:
-    restoreSolution: '$(solution)'
+    packageType: sdk
+    version: '5.x'
+
+#this takes just installs the package manager?
+- task: npm@1
+  displayName: 'Run npm install'
+  inputs:
+    verbose: false
+
+#and this one actually runs the script (this is all one task?)
+- script: './node_modules/.bin/node-sass Tailspin.SpaceGame.Web/wwwroot --output Tailspin.SpaceGame.Web/wwwroot'
+  displayName: 'Compile Sass assets'
+
+- task: gulp@1
+  displayName: 'Run gulp tasks'
+
+- script: 'echo "$(Build.DefinitionName), $(Build.BuildId), $(Build.BuildNumber)" > buildinfo.txt'
+  displayName: 'Write build info'
+  workingDirectory: Tailspin.SpaceGame.Web/wwwroot
+
+  #is this replaceable with the dotnetcorecli@2 restore command
+# - task: NuGetCommand@2
+#   inputs:
+#     restoreSolution: '$(solution)'
+
+- task: DotNetCoreCLI@2
+  displayName: 'Restore project dependencies'
+  inputs:
+    command: 'restore'
+    projects: '**/*.csproj'
+
+- task: DotNetCoreCLI@2
+  displayName: 'Build the project - Release'
+  inputs: 
+    command: 'build'
+    arguments: '--no-restore --configuration Release'
+    projects: '**/*.csproj'
 
 - task: VSBuild@1
   inputs:
