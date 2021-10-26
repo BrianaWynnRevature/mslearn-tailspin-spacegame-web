@@ -17,3 +17,15 @@ steps:
     publishWebProjects: false
     arguments: '--no-restore --configuration ${{parameters.buildConfiguration}} --output $(Build.ArtifactStagingDirectory)/${{parameters.buildConfiguration}}'
     zipAfterPublish: true
+
+
+
+
+
+
+    #setup the trigger
+    #setup the build agent
+    #get the sdk
+    #install the dependencies
+    #build in debug
+    #build in release

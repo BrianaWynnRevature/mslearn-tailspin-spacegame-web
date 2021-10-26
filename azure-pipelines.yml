@@ -70,9 +70,10 @@ steps:
     command: 'restore'
     projects: '**/*.csproj'
 
-- template: templates/build.yml
-  parameters:
-    buildConfiguration: 'Debug'
+# only handle the release for this demo
+# - template: templates/build.yml
+#   parameters:g
+#     buildConfiguration: 'Debug'
 
 - template: templates/build.yml
   parameters:
