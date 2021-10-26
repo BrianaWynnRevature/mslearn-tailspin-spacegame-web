@@ -4,31 +4,80 @@
 # https://docs.microsoft.com/azure/devops/pipelines/apps/aspnet/build-aspnet-4
 
 trigger:
-- main
+#- main
+#trigger is changed from main to a wildcard, but why do we want the 
+#pipeline to trigger from any branch?
+
+- '*'
 
 pool:
-  vmImage: 'windows-latest'
+  #vmImage: 'windows-latest'
+  #vm must mean the virtual machine image that we are using
+  #we want to change to ubuntu-20.04 for a linux system
+  #makes sense if we will run linux containers later, but
+  #if we weren't going to do that why else do we want this change?
+
+  vmImage: 'ubuntu-20.04'
+  demands:
+  - npm
 
 variables:
-  solution: '**/*.sln'
-  buildPlatform: 'Any CPU'
+  # the solution can be any file that is a .sln file
+  # solution: '**/*.sln' 
+  # we can build on any cpu
+  # I wonder if not having these commands are outdated?
+  # buildPlatform: 'Any CPU'
   buildConfiguration: 'Release'
+  wwwrootDir: 'Tailspin.SpaceGame.Web/wwwroot'
+  dotnetSdkVersion: '5.x'
 
 steps:
-- task: NuGetToolInstaller@1
-
-- task: NuGetCommand@2
+# installs nuget packages
+#- task: NuGetToolInstaller@1
+#is UseDotNet@2 a replacement for this task or something else entirely?
+#UseDotNet@2 is to install .net 
+- task: UseDotNet@2
+  displayName: 'Use .NET SDK $(dotnetSdkVersion)'
   inputs:
-    restoreSolution: '$(solution)'
+    packageType: sdk
+    version: '$(dotnetSdkVersion)'
 
-- task: VSBuild@1
+#this takes just installs the package manager?
+- task: npm@1
+  displayName: 'Run npm install'
   inputs:
-    solution: '$(solution)'
-    msbuildArgs: '/p:DeployOnBuild=true /p:WebPublishMethod=Package /p:PackageAsSingleFile=true /p:SkipInvalidConfigurations=true /p:PackageLocation="$(build.artifactStagingDirectory)"'
-    platform: '$(buildPlatform)'
-    configuration: '$(buildConfiguration)'
+    verbose: false
 
-- task: VSTest@2
+#and this one actually runs the script (this is all one task?)
+- script: './node_modules/.bin/node-sass $(wwwrootDir) --output $(wwwrootDir)'
+  displayName: 'Compile Sass assets'
+
+- task: gulp@1
+  displayName: 'Run gulp tasks'
+
+- script: 'echo "$(Build.DefinitionName), $(Build.BuildId), $(Build.BuildNumber)" > buildinfo.txt'
+  displayName: 'Write build info'
+  workingDirectory: '$(wwwrootDir)'
+
+  #is this replaceable with the dotnetcorecli@2 restore command
+# - task: NuGetCommand@2
+#   inputs:
+#     restoreSolution: '$(solution)'
+
+- task: DotNetCoreCLI@2
+  displayName: 'Restore project dependencies'
   inputs:
-    platform: '$(buildPlatform)'
-    configuration: '$(buildConfiguration)'
+    command: 'restore'
+    projects: '**/*.csproj'
+
+- template: templates/build.yml
+  parameters:
+    buildConfiguration: 'Debug'
+
+- template: templates/build.yml
+  parameters:
+    buildConfiguration: 'Release'
+
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish Artifact: drop'
+  condition: succeeded()
