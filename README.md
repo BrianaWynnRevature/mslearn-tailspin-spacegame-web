@@ -1,3 +1,4 @@
+[![Build Status](https://dev.azure.com/brianawynn/Space%20Game%20-web-Pipeline/_apis/build/status/BrianaWynnRevature.mslearn-tailspin-spacegame-web?branchName=feature%2Fhome-page-text)](https://dev.azure.com/brianawynn/Space%20Game%20-web-Pipeline/_build/latest?definitionId=3&branchName=feature%2Fhome-page-text)
 
 # Contributing
 
