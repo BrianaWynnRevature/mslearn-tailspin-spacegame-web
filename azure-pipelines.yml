@@ -41,9 +41,9 @@ steps:
   inputs:
     packageType: sdk
     version: '$(dotnetSdkVersion)'
-
+    
 #this takes just installs the package manager?
-- task: npm@1
+- task: Npm@1
   displayName: 'Run npm install'
   inputs:
     verbose: false
@@ -70,14 +70,16 @@ steps:
     command: 'restore'
     projects: '**/*.csproj'
 
-# only handle the release for this demo
-# - template: templates/build.yml
-#   parameters:g
-#     buildConfiguration: 'Debug'
+
+ - template: templates/build.yml
+   parameters:
+     buildConfiguration: 'Debug'
 
 - template: templates/build.yml
   parameters:
     buildConfiguration: 'Release'
+
+
 
 - task: PublishBuildArtifacts@1
   displayName: 'Publish Artifact: drop'
