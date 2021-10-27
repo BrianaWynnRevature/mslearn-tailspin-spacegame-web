@@ -1,27 +1,54 @@
+# ASP.NET
+# Build and test ASP.NET projects.
+# Add steps that publish symbols, save build artifacts, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/apps/aspnet/build-aspnet-4
+
 trigger:
+#- main
+#trigger is changed from main to a wildcard, but why do we want the 
+#pipeline to trigger from any branch?
+
 - '*'
 
 pool:
+  #vmImage: 'windows-latest'
+  #vm must mean the virtual machine image that we are using
+  #we want to change to ubuntu-20.04 for a linux system
+  #makes sense if we will run linux containers later, but
+  #if we weren't going to do that why else do we want this change?
+
   vmImage: 'ubuntu-20.04'
   demands:
   - npm
 
 variables:
+  # the solution can be any file that is a .sln file
+  # solution: '**/*.sln' 
+  # we can build on any cpu
+  # I wonder if not having these commands are outdated?
+  # buildPlatform: 'Any CPU'
   buildConfiguration: 'Release'
   wwwrootDir: 'Tailspin.SpaceGame.Web/wwwroot'
   dotnetSdkVersion: '5.x'
 
 steps:
+# installs nuget packages
+#- task: NuGetToolInstaller@1
+#is UseDotNet@2 a replacement for this task or something else entirely?
+#UseDotNet@2 is to install .net 
 - task: UseDotNet@2
   displayName: 'Use .NET SDK $(dotnetSdkVersion)'
   inputs:
+    packageType: sdk
     version: '$(dotnetSdkVersion)'
-
+    
+#this takes just installs the package manager?
 - task: Npm@1
   displayName: 'Run npm install'
   inputs:
     verbose: false
 
+#and this one actually runs the script (this is all one task?)
 - script: './node_modules/.bin/node-sass $(wwwrootDir) --output $(wwwrootDir)'
   displayName: 'Compile Sass assets'
 
@@ -30,7 +57,12 @@ steps:
 
 - script: 'echo "$(Build.DefinitionName), $(Build.BuildId), $(Build.BuildNumber)" > buildinfo.txt'
   displayName: 'Write build info'
-  workingDirectory: $(wwwrootDir)
+  workingDirectory: '$(wwwrootDir)'
+
+  #is this replaceable with the dotnetcorecli@2 restore command
+# - task: NuGetCommand@2
+#   inputs:
+#     restoreSolution: '$(solution)'
 
 - task: DotNetCoreCLI@2
   displayName: 'Restore project dependencies'
@@ -38,6 +70,10 @@ steps:
     command: 'restore'
     projects: '**/*.csproj'
 
+# only handle the release for this demo
+# - template: templates/build.yml
+#   parameters:g
+#     buildConfiguration: 'Debug'
 - task: DotNetCoreCLI@2
   displayName: 'Build the project - $(buildConfiguration)'
   inputs:
@@ -53,14 +89,9 @@ steps:
     publishTestResults: true
     projects: '**/*.Tests.csproj'
 
-- task: DotNetCoreCLI@2
-  displayName: 'Publish the project - $(buildConfiguration)'
-  inputs:
-    command: 'publish'
-    projects: '**/*.csproj'
-    publishWebProjects: false
-    arguments: '--no-build --configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/$(buildConfiguration)'
-    zipAfterPublish: true
+- template: templates/build.yml
+  parameters:
+    buildConfiguration: 'Release'
 
 - task: PublishBuildArtifacts@1
   displayName: 'Publish Artifact: drop'
