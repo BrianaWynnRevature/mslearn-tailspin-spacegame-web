@@ -50,3 +50,7 @@ steps:
     #install the dependencies
     #build in debug
     #build in release
+    #run the unit test
+    #generate code coverage report
+    #publish code coverage report
+    #publish project
