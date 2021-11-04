@@ -4,31 +4,14 @@
 # https://docs.microsoft.com/azure/devops/pipelines/apps/aspnet/build-aspnet-4
 
 trigger:
-#- main
-#trigger is changed from main to a wildcard, but why do we want the 
-#pipeline to trigger from any branch?
-
 - '*'
 
 pool:
-  #vmImage: 'windows-latest'
-  #vm must mean the virtual machine image that we are using
-  #we want to change to ubuntu-20.04 for a linux system
-  #makes sense if we will run linux containers later, but
-  #if we weren't going to do that why else do we want this change?
-
   vmImage: 'ubuntu-20.04'
   demands:
   - npm
 
 variables:
-
-  # the solution can be any file that is a .sln file
-  # solution: '**/*.sln' 
-  # we can build on any cpu
-  # I wonder if not having these commands are outdated?
-  # buildPlatform: 'Any CPU'
-
   buildConfiguration: 'Release'
   wwwrootDir: 'Tailspin.SpaceGame.Web/wwwroot'
   dotnetSdkVersion: '5.x'
@@ -77,26 +60,41 @@ steps:
     feedsToUse: 'select'
     vstsFeed: '$(System.TeamProject)/Tailspin.SpaceGame.Web.Models'
 
+# - task: DotNetCoreCLI@2
+#   displayName: 'Install .NET tools from local manifest'
+#   inputs: 
+#     command: custom
+#     custom: tool
+#     arguments: 'restore'
+
 - task: DotNetCoreCLI@2
-  displayName: 'Install .NET tools from local manifest'
-  inputs: 
-    command: custom
-    custom: tool
-    arguments: 'restore'
+  displayName: 'Build the project -$(buildConfiguration)'
+  inputs:
+    command: 'build'
+    arguments: '--no-restore --configuration $(buildConfiguration)'
+    projects: '**/*.csproj'
 
-
+- task: DotNetCoreCLI@2
+  displayName: 'Publish the project - $(buildConfiguration)'
+  inputs:
+    command: 'publish'
+    projects: '**/*.csproj'
+    publishWebProjects: false
+    arguments: '--no-build --configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/$(buildConfiguration)'
+    zipAfterPublish: true
   #is this replaceable with the dotnetcorecli@2 restore command
 # - task: NuGetCommand@2
 #   inputs:
 #     restoreSolution: '$(solution)'
 
-- template: templates/build.yml
-  parameters:
-    buildConfiguration: 'Debug'
 
-- template: templates/build.yml
-  parameters:
-    buildConfiguration: 'Release'
+# - template: templates/build.yml
+#   parameters:
+#     buildConfiguration: 'Debug'
+
+# - template: templates/build.yml
+#   parameters:
+#     buildConfiguration: 'Release'
 
 
 - task: PublishBuildArtifacts@1
